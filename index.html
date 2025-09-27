@@ -113,6 +113,11 @@
         <button class="buy-btn" onclick="buy('ไก่ตัน (ของเด็ด)', 2)">ซื้อเลย</button>
       </div>
       <div class="product">
+        <h3>🐓 ไก่ตัน 50 เครดิต (โอกาส 99%)</h3>
+        <p>ราคา: 50 เครดิต</p>
+        <button class="buy-btn" onclick="buy('ไก่ตัน 50 เครดิต (99%)', 50)">ซื้อเลย</button>
+      </div>
+      <div class="product">
         <h3>💎 เซิร์ฟเวอร์ VIP (1 เดือน)</h3>
         <p>ราคา: 50 เครดิต</p>
         <button class="buy-btn" onclick="buy('VIP 1 เดือน', 50)">ซื้อเลย</button>
@@ -134,7 +139,6 @@
     <input type="number" id="topupAmount" placeholder="จำนวนเครดิต" min="1">
     <p>📎 อัปโหลดสลิป:</p>
     <input type="file" id="slipUpload" accept="image/*">
-    <p id="countdown" style="color:red; font-weight:bold; margin-top:10px;">เหลือเวลา: 1:30</p>
     <button onclick="submitTopup()">ส่งสลิป</button>
     <button onclick="cancelTopup()">ยกเลิก</button>
   </div>
@@ -145,17 +149,19 @@
       users["admin"] = { password: "112233", credits: 999999 };
       saveUsers();
     }
-    let topupRequests = JSON.parse(localStorage.getItem("topupRequests")) || [];
-    let currentUser = null;
-    let countdownTimer;
-    let timeLeft = 90;
-    let topupActive = false;
+    let currentUser = localStorage.getItem("currentUser") || null;
+
     function saveUsers() {
       localStorage.setItem("users", JSON.stringify(users));
     }
-    function saveRequests() {
-      localStorage.setItem("topupRequests", JSON.stringify(topupRequests));
-    }
+
+    // ✅ Auto Login
+    window.onload = () => {
+      if (currentUser && users[currentUser]) {
+        showMainPage(currentUser);
+      }
+    };
+
     function showRegister() {
       document.getElementById("loginBox").style.display = "none";
       document.getElementById("registerBox").style.display = "block";
@@ -164,6 +170,7 @@
       document.getElementById("registerBox").style.display = "none";
       document.getElementById("loginBox").style.display = "block";
     }
+
     function register() {
       let user = document.getElementById("regUser").value;
       let pass = document.getElementById("regPass").value;
@@ -174,130 +181,82 @@
       alert("✅ สมัครสมาชิกสำเร็จ");
       backToLogin();
     }
+
     function login() {
       const user = document.getElementById("username").value;
       const pass = document.getElementById("password").value;
       if (users[user] && users[user].password === pass) {
         currentUser = user;
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("mainPage").style.display = "block";
-        document.getElementById("currentUser").innerText = user;
-        document.getElementById("credits").innerText = users[user].credits;
-        if (user === "admin") {
-          let adminDiv = document.createElement("div");
-          adminDiv.id = "adminPanel";
-          adminDiv.innerHTML = `
-            <h2>🛠 เมนูแอดมิน - ตรวจสอบการเติมเครดิต</h2>
-            <div id="requestsList"></div>
-          `;
-          document.body.insertBefore(adminDiv, document.querySelector("footer"));
-          renderRequests();
-        }
+        localStorage.setItem("currentUser", user); // ✅ จำบัญชี
+        showMainPage(user);
       } else {
         alert("❌ เข้าสู่ระบบไม่สำเร็จ");
       }
     }
+
+    function showMainPage(user) {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("registerBox").style.display = "none";
+      document.getElementById("mainPage").style.display = "block";
+      document.getElementById("currentUser").innerText = user;
+      document.getElementById("credits").innerText = users[user].credits;
+    }
+
     function buy(item, price) {
       if (users[currentUser].credits >= price) {
         users[currentUser].credits -= price;
         saveUsers();
         document.getElementById("credits").innerText = users[currentUser].credits;
+
+        // ✅ ระบบสุ่ม
         if (item.includes("ของเด็ด")) {
-          let result = (Math.random() * 100 < 89) ? "🧂 เกลือ!" : "🎁 รางวัลใหญ่!!";
+          let isSalt = Math.random() * 100 < 89; // 89% โอกาสเกลือ
+          if (isSalt) {
+            alert("💔 เจ็บ... คุณสุ่มได้เกลือ!");
+          } else {
+            alert("🎉 คุณได้รับไอดี!");
+            let btn = document.createElement("button");
+            btn.innerText = "📥 รับไอดี";
+            btn.className = "buy-btn";
+            btn.onclick = () => {
+              alert("✅ ไอดีถูกส่งให้คุณเรียบร้อยแล้ว!");
+              window.location.href = "https://www.facebook.com/anuwat.wawisai.2025?mibextid=ZbWKwL";
+              btn.remove();
+            };
+            document.querySelector(".container").appendChild(btn);
+          }
+        } else if (item.includes("99%")) {
+          let result = (Math.random() * 100 < 99) ? "🎁 ได้ของ!" : "🧂 เกลือ!";
           alert("คุณซื้อ " + item + " ผลลัพธ์: " + result);
         } else {
           alert("คุณซื้อ " + item + " สำเร็จ!");
         }
-        let btn = document.createElement("button");
-        btn.innerText = "📥 รับสินค้า";
-        btn.className = "buy-btn";
-        btn.onclick = () => {
-          window.location.href = "https://www.facebook.com/anuwat.wawisai.2025?mibextid=ZbWKwL";
-        };
-        document.querySelector(".container").appendChild(btn);
+
       } else {
         alert("❌ เครดิตไม่พอ");
       }
     }
+
+    // ✅ เติมเงินอัตโนมัติ
     function showTopup() {
       document.getElementById("topupBox").style.display = "block";
-      startCountdown();
-    }
-    function startCountdown() {
-      timeLeft = 90;
-      topupActive = true;
-      updateCountdown();
-      countdownTimer = setInterval(() => {
-        timeLeft--;
-        updateCountdown();
-        if (timeLeft <= 0) {
-          clearInterval(countdownTimer);
-          alert("หมดเวลา กรุณาเริ่มใหม่");
-          document.getElementById("topupBox").style.display = "none";
-          topupActive = false;
-        }
-      }, 1000);
-    }
-    function updateCountdown() {
-      let m = Math.floor(timeLeft / 60);
-      let s = timeLeft % 60;
-      document.getElementById("countdown").innerText = `เหลือเวลา: ${m}:${s < 10 ? "0"+s : s}`;
     }
     function cancelTopup() {
-      clearInterval(countdownTimer);
       document.getElementById("topupBox").style.display = "none";
-      topupActive = false;
     }
     function submitTopup() {
-      if (!topupActive) return alert("❌ ไม่มีการทำรายการ");
       let amount = document.getElementById("topupAmount").value;
       let slip = document.getElementById("slipUpload").files[0];
       if (!amount || amount <= 0) return alert("❌ กรอกจำนวนเครดิต");
       if (!slip) return alert("❌ อัปโหลดสลิปก่อน");
-      topupRequests.push({ user: currentUser, amount: parseInt(amount), slip: slip.name });
-      saveRequests();
-      alert("📤 ส่งคำขอแล้ว รอแอดมินตรวจสอบ");
-      clearInterval(countdownTimer);
+
+      users[currentUser].credits += parseInt(amount);
+      saveUsers();
+      document.getElementById("credits").innerText = users[currentUser].credits;
+
+      alert("✅ เติมเครดิตอัตโนมัติแล้ว + " + amount);
       document.getElementById("topupBox").style.display = "none";
-      topupActive = false;
-      if (currentUser === "admin") renderRequests();
-    }
-    function renderRequests() {
-      let list = document.getElementById("requestsList");
-      list.innerHTML = "";
-      topupRequests.forEach((req, i) => {
-        let div = document.createElement("div");
-        div.style.background = "#333";
-        div.style.margin = "10px";
-        div.style.padding = "10px";
-        div.style.borderRadius = "5px";
-        div.innerHTML = `
-          <p>👤 ผู้ใช้: ${req.user}</p>
-          <p>💰 เครดิตที่ขอ: ${req.amount}</p>
-          <p>📎 สลิป: ${req.slip}</p>
-          <button onclick="approveTopup(${i})">✅ ยืนยัน</button>
-          <button onclick="rejectTopup(${i})">❌ ปฏิเสธ</button>
-        `;
-        list.appendChild(div);
-      });
-    }
-    function approveTopup(i) {
-      let req = topupRequests[i];
-      if (users[req.user]) {
-        users[req.user].credits += req.amount;
-        saveUsers();
-        alert("✅ เพิ่มเครดิตให้ " + req.user + " = " + req.amount);
-      }
-      topupRequests.splice(i, 1);
-      saveRequests();
-      renderRequests();
-    }
-    function rejectTopup(i) {
-      alert("❌ ปฏิเสธคำขอของ " + topupRequests[i].user);
-      topupRequests.splice(i, 1);
-      saveRequests();
-      renderRequests();
     }
   </script>
 </body>
-</html>
+          </html>
